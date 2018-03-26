@@ -31,13 +31,16 @@ class Slider {
     }
 
 
-    // 初始化滑杆
+    /* 
+    * 初始化滑杆
+    * state 包括 最小值，最大值，滑杆盒子位置、宽度，比率，是否点击 
+    */
     setDefaultSlider () {
         const { min, max, isClick } = this.option;
         const { node } = this.el;
         const { left, width } = node.getBoundingClientRect();
-        const ratio = (max - min) / width;
-        this.state = { min, max, isClick, ratio, left, width  };
+        const ratio = (max - min) / width; 
+        this.state = { min, max, left, width, ratio, isClick};
         let html = `
         <p class="slider-range-tip">
             <span class="min">${min}</span>
@@ -52,6 +55,7 @@ class Slider {
         `;
         node.innerHTML = html;
     }
+
     addEvent () {
         const getEvent = e => e.touches ? e.touches[0] : e;
         const ondown = 'touchstart mousedown';
@@ -74,6 +78,7 @@ class Slider {
             if(isClick) {
                 this.state.isClick = false;
             }
+
         })
 
         // 鼠标移动
@@ -84,43 +89,48 @@ class Slider {
                 const clientX = event.clientX;
                 this.handleSlider(clientX); 
             }
+            Slider.getClass("slider-handle").classList.remove("active");
         })
 
     }
     
+    // 判断当前鼠标位置与左右手柄距离
     handleSlider (clientX) {
-        const x = clientX;
-        const { left, ratio } = this.state;
+        const minLeft = Slider.getClass("slider-handle-min").offsetLeft;
+        const maxLeft = Slider.getClass("slider-handle-max").offsetLeft;
+        const { min, max, left, width, ratio } = this.state;
         const moveRange = clientX - left;
-        const value = Math.round( moveRange * ratio );
-        this.handleDom(clientX, moveRange, value);
+        const value = Math.round( moveRange*ratio + min );
+        this.state.moveRange = moveRange;
+        this.state.minLeft = minLeft;
+        this.state.maxLeft = maxLeft;
+        if( moveRange - minLeft >= (maxLeft - minLeft)/2) {
+            this.state.maxLeft = moveRange;
+            this.handleDom("max", value);
+        } else {
+            this.state.minLeft = moveRange;
+            this.handleDom("min", value);
+        }
     }
 
-    handleDom (clientX, moveRange, value) {
-        const { min, max, width } = this.state;
-        const minDom = Slider.getClass("slider-handle-min");
-        const maxDom = Slider.getClass("slider-handle-max");
-        const minTip = Slider.getClass("min"); 
-        const maxTip = Slider.getClass("max"); 
+    handleDom (handles, value) {
+        const { min, max, width, moveRange, minLeft, maxLeft } = this.state;
+        const handle = Slider.getClass("slider-handle-" + handles);
+        const tip = Slider.getClass(handles);  
         const bar = Slider.getClass("slider-bar");
-        let barWidth = 0, barLeft = 0;
-        if( value < min || value > max) {
+        if(value > max || value < min) {
             return;
         }
-        if(value <= (max - min)/ 2) {
-            const { left } = Slider.getClass("slider-handle-max").getBoundingClientRect();
-            barWidth = left - clientX;
-            barLeft = moveRange;
-            minTip.textContent = value;
-            minDom.style.left = moveRange + 'px';
-        } else {
-            const { left } = Slider.getClass("slider-handle-min").getBoundingClientRect();
-            barWidth = clientX - left;
-            barLeft = moveRange - barWidth;
-            maxTip.textContent = value;
-            maxDom.style.left = moveRange + 'px';
-        }
-        bar.style.width = barWidth + 'px';
-        bar.style.left = barLeft + 'px';
+        //数值赋值 
+        tip.textContent = value;
+
+        //手柄移位
+        handle.classList.add("active");
+        handle.style.left = moveRange + 'px';
+
+        //设置滑杆样式
+        bar.style.width = maxLeft - minLeft + 'px';
+        bar.style.left = minLeft + 'px';
     }
 }
+
