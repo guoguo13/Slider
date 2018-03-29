@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
-    <title>Document</title>
+    <title>Slider</title>
     <style>
         .slider-box {
             margin: 30px;
@@ -37,10 +37,10 @@
             position: absolute;
             width: 14px;
             height: 14px;
-            top: -7px;
             border-radius: 50%;
             border: 1px solid #e0e0e0;
             background-color: #fff;
+            transform: translate(-50%, -50%);
         }
         .silder-handle-min {
             left: 0;
@@ -58,7 +58,12 @@
     </div>
     <script src="js/js.js"></script>
     <script>
-        var s = new Slider( document.querySelector('.slider-box'));
+        var s = new Slider( document.querySelector('.slider-box'), {
+            callback: function(min,max) {
+                // 获取newMin和newMax
+                console.log(min,max);
+            }
+        });
     </script>
 </body>
 </html>
