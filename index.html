@@ -41,6 +41,8 @@
             border: 1px solid #e0e0e0;
             background-color: #fff;
             transform: translate(-50%, -50%);
+            -webkit-user-drag: none;
+            user-select: none;
         }
         .silder-handle-min {
             left: 0;
@@ -61,7 +63,7 @@
         var s = new Slider( document.querySelector('.slider-box'), {
             callback: function(min,max) {
                 // 获取newMin和newMax
-                console.log(min,max);
+                // console.log(min,max);
             }
         });
     </script>

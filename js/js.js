@@ -1,3 +1,10 @@
+/**
+ * @slider.js
+ * @author Betsy.Guo
+ * @version1.0
+ * @description 双向滑杆
+ */
+
 class Slider {
     // 创建元素
     static createEle ( tagName, className ) {
@@ -22,6 +29,7 @@ class Slider {
             min: 0,
             max: 100,
             isClick: false,
+            isDrag: false,
             isMinHandle: false,
             isMaxHandle: false,
             callback: () => {}
@@ -35,16 +43,16 @@ class Slider {
 
     /* 
     * 初始化滑杆
-    * state 包括 最小值，最大值，滑杆盒子位置、宽度，比率，是否点击,是否左手柄操作，是否右手柄操作 
+    * state 包括 最小值，最大值，滑杆盒子位置、宽度，比率，是否点击，是否拖拽，是否左手柄操作，是否右手柄操作 
     * newValue 用于存储事件操作后最大值与最小值
     */
     setDefaultSlider () {
-        const { min, max, isClick, isMinHandle, isMaxHandle } = this.option;
+        const { min, max, isClick, isDrag, isMinHandle, isMaxHandle } = this.option;
         const { node } = this.el;
         const { left, width } = node.getBoundingClientRect();
         const ratio = (max - min) / width; 
         this.newValue = { min, max };
-        this.state = { min, max, left, width, ratio, isClick, isMinHandle, isMaxHandle };
+        this.state = { min, max, left, width, ratio, isClick, isDrag, isMinHandle, isMaxHandle };
         let html = `
         <p class="slider-range-tip">
             <span class="min">${min}</span>
@@ -79,8 +87,9 @@ class Slider {
         // 鼠标移开
         Slider.on(window, onend, e => {
             this.state.isClick ? this.state.isClick = false: "";
+            this.state.isDrag ? this.state.isDrag = false: "";
             this.state.isMinHandle ? this.state.isMinHandle = false: "";
-            this.state.isMaxHandle ? this.state.isMaxHandle = false: "";
+            this.state.isMaxHandle ? this.state.isMaxHandle = false:"";
             Slider.getClass("slider-handle-min").classList.remove("active");
             Slider.getClass("slider-handle-max").classList.remove("active");
         })
@@ -90,12 +99,38 @@ class Slider {
             if( this.state.isClick ) {
                 const event = getEvent(e);
                 const clientX = event.clientX;
+                this.state.isDrag = true;
                 this.handleSlider(clientX);
             }
         })
 
     }
     
+    /*  
+    * handleMoveDir 判断鼠标移动方向
+    * 返回true,向右移动；返回false,想做移动
+    */
+    handleMoveDir (moveRange) {
+        const oldMoveRange = this.state.moveRange;
+        if(moveRange > oldMoveRange) {
+            return true;
+        }
+        return false;
+    }
+
+    /* 
+    * isOverMax 判断最小值大于最大值时鼠标是否可以继续移动
+    * 返回false则不可移动； 返回true则可继续移动
+    */
+    isContinueMove (mouseMoveDir) {
+        if(this.newValue.min + 1 >= this.newValue.max && this.state.isDrag ) {
+             if( ( !mouseMoveDir && this.state.isMaxHandle) || (mouseMoveDir && this.state.isMinHandle)) {
+                return false;
+             }
+        }
+        return true;
+    }
+
     // 判断当前鼠标位置与左右手柄距离
     handleSlider (clientX) {
         const minLeft = Slider.getClass("slider-handle-min").offsetLeft;
@@ -103,22 +138,22 @@ class Slider {
         const { min, max, left, width, ratio } = this.state;
         const moveRange = clientX - left;
         const value = Math.round( moveRange * ratio + min );
+        const mouseMoveDir = this.handleMoveDir(moveRange);
         this.state.moveRange = moveRange;
         this.state.minLeft = minLeft;
         this.state.maxLeft = maxLeft;
         if(value > max || value < min ) {
             return;
         } 
-        // 这里存在的问题，如果当前符合这个条件，但是鼠标再次点击，在这里就卡住了
-        if(this.newValue.min + 1 >= this.newValue.max) {   
-            return;
-        };
+
         if( moveRange >= maxLeft || ( moveRange > minLeft && maxLeft - moveRange < moveRange - minLeft ) ) {
+            if(!this.isContinueMove(mouseMoveDir)) return;
             this.state.isMaxHandle = true;
             this.state.isMinHandle = false;
             this.state.maxLeft = moveRange;
             this.newValue.max = value; 
         } else {
+            if(!this.isContinueMove(mouseMoveDir)) return;
             this.state.isMinHandle = true;
             this.state.isMaxHandle = false;
             this.state.minLeft = moveRange;
@@ -127,6 +162,7 @@ class Slider {
         this.handleDom(value);
     }
 
+    // 操作Dom
     handleDom (value) {
         const { min, max, width, moveRange, minLeft, maxLeft } = this.state;
         const maxHandle = Slider.getClass("slider-handle-max");
